@@ -106,7 +106,13 @@ public class TradePublisher implements Lifecycle, MessageHandler, Publisher<Trad
         if (sink.isCancelled()) {
             sinks.remove(sink);
         } else {
-            sink.next(trade);
+            try {
+                sink.next(trade);
+            } catch (Exception e) {
+                LOG.error("Failed to notify : {}", sink, e);
+                sinks.remove(sink);
+                sink.error(e);
+            }
         }
     }
 
