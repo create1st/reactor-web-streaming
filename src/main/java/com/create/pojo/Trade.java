@@ -25,8 +25,6 @@ import lombok.ToString;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.io.Serializable;
-
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -35,7 +33,7 @@ import java.io.Serializable;
 @ToString
 @Builder
 @Document
-public class Trade implements Serializable {
+public class Trade {
     @Id
     private String id;
     private Customer customer;
