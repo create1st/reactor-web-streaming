@@ -16,47 +16,43 @@
 
 package com.create.messaging.publishers;
 
+import com.create.messaging.channels.Trades;
 import com.create.pojo.Trade;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.context.Lifecycle;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageHandler;
-import org.springframework.messaging.MessagingException;
+import org.springframework.messaging.handler.annotation.Payload;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
-import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-public class TradePublisher implements Lifecycle, MessageHandler, Publisher<Trade> {
+public class TradePublisher implements Lifecycle, Publisher<Trade> {
     private static final Logger LOG = LoggerFactory.getLogger(TradePublisher.class);
     private AtomicBoolean started = new AtomicBoolean(false);
     private final List<FluxSink<Trade>> sinks = new CopyOnWriteArrayList<>();
-    private final ObjectMapper objectMapper;
     private final Flux<Trade> tradeFlux;
 
-    public TradePublisher(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public TradePublisher() {
         this.tradeFlux = Flux.<Trade>create(sinks::add)
                 .log();
     }
 
-    @Override
-    public void handleMessage(@NotNull Message<?> message) throws MessagingException {
+    @StreamListener(Trades.INCOMING_TRADES)
+    public void onMessage(@Payload Trade trade) {
         if (started.get()) {
             try {
-                Trade trade = getTrade(message);
                 notifyAllSubscriptions(trade);
             } catch (Exception e) {
-                throw new IllegalArgumentException("Failed to parse message content : " + Objects.toString(message), e);
+                throw new IllegalArgumentException("Failed to parse message content : " + Objects.toString(trade), e);
             }
         } else {
             throw new IllegalStateException("Attempt to publish a message on not started publisher");
@@ -66,11 +62,6 @@ public class TradePublisher implements Lifecycle, MessageHandler, Publisher<Trad
     @Override
     public void subscribe(Subscriber<? super Trade> subscriber) {
         tradeFlux.subscribe(subscriber);
-    }
-
-    private Trade getTrade(Message<?> message) throws java.io.IOException {
-        byte[] payload = getPayload(message);
-        return objectMapper.readValue(payload, Trade.class);
     }
 
     private byte[] getPayload(Message<?> message) {

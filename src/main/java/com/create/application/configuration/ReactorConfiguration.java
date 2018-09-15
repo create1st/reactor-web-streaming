@@ -23,53 +23,31 @@ import com.create.messaging.subscribers.PersistenceSubscriber;
 import com.create.pojo.Trade;
 import com.create.pojo.Transaction;
 import com.create.repositories.TradeRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-
-import javax.annotation.PostConstruct;
 
 @Configuration
 @EnableBinding({Trades.class})
-@Import(ReactorConfiguration.SubscriptionConfiguration.class)
 class ReactorConfiguration {
 
     @Bean(initMethod = "start", destroyMethod = "stop")
-    TradePublisher tradePublisher(ObjectMapper objectMapper) {
-        return new TradePublisher(objectMapper);
+    TradePublisher tradePublisher() {
+        return new TradePublisher();
     }
 
     @Bean
-    Subscriber<Trade> persistenceSubscriber(TradeRepository tradeRepository) {
-        return new PersistenceSubscriber(tradeRepository);
+    Subscriber<Trade> persistenceSubscriber(TradeRepository tradeRepository,
+                                            TradePublisher tradePublisher) {
+        PersistenceSubscriber persistenceSubscriber = new PersistenceSubscriber(tradeRepository);
+        tradePublisher.subscribe(persistenceSubscriber);
+        return persistenceSubscriber;
     }
 
     @Bean
     Publisher<Transaction> transactionPublisher(Publisher<Trade> tradePublisher) {
         return new TransactionPublisher(tradePublisher);
     }
-
-    @Configuration
-    static class SubscriptionConfiguration {
-        @Autowired
-        private Trades trades;
-        @Autowired
-        private TradePublisher tradePublisher;
-        @Autowired
-        private Subscriber<Trade> persistenceSubscriber;
-
-        @PostConstruct
-        void subscribeAll() {
-            tradePublisher.subscribe(persistenceSubscriber);
-            trades.incomingTrades().subscribe(tradePublisher);
-        }
-
-
-    }
-
 }
