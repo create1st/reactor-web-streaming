@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class TradePublisher implements Lifecycle, MessageHandler, Publisher<Trade> {
     private static final Logger LOG = LoggerFactory.getLogger(TradePublisher.class);
@@ -98,22 +99,28 @@ public class TradePublisher implements Lifecycle, MessageHandler, Publisher<Trad
     }
 
     private void notifyAllSubscriptions(Trade trade) {
-        sinks.forEach(sink -> notifyActiveSinkOrRemoveCancelled(sink, trade));
+        List<FluxSink<Trade>> deadSinks = sinks.stream()
+                .map(sink -> notifyActiveSinkAndReportDead(sink, trade))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        sinks.removeAll(deadSinks);
     }
 
-    private void notifyActiveSinkOrRemoveCancelled(FluxSink<Trade> sink,
-                                                   Trade trade) {
+    private FluxSink<Trade> notifyActiveSinkAndReportDead(FluxSink<Trade> sink,
+                                                          Trade trade) {
+        FluxSink<Trade> deadSink = null;
         if (sink.isCancelled()) {
-            sinks.remove(sink);
+            deadSink = sink;
         } else {
             try {
                 sink.next(trade);
             } catch (Exception e) {
                 LOG.error("Failed to notify : {}", sink, e);
-                sinks.remove(sink);
                 sink.error(e);
+                deadSink = sink;
             }
         }
+        return deadSink;
     }
 
     private void completeAllSubscriptions() {
