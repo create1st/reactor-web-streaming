@@ -1,0 +1,54 @@
+info:
+  build:
+    artifact: "@project.artifactId@"
+    name: "@project.name@"
+    description: "@project.description@"
+    version: "@project.version@"
+server:
+  port: 8080
+reactorapi:
+  context-path: /
+management:
+  endpoints:
+    enabled-by-default: true
+    jmx:
+      exposure:
+        include: "*"
+        exclude:
+    web:
+      exposure:
+        include: "*"
+        exclude:
+spring:
+  main:
+    banner-mode: log
+  jackson:
+    serialization-inclusion: non_null
+  profiles:
+    active: qpid, dev
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+  cloud:
+    stream:
+      default:
+        contentType: application/json
+      bindings:
+        error:
+          destination : errors
+        incomingTrades:
+          destination: incomingTrades
+          group: incomingTradesGroup
+          binder: rabbit
+      binders:
+        rabbit:
+          type: rabbit
+          environment:
+            spring:
+              rabbitmq:
+                host: localhost
+                port: 5672
+                username: guest
+                password: guest

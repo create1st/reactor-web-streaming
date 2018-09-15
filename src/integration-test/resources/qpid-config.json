@@ -1,0 +1,32 @@
+{
+  "name": "EmbeddedAMQPBroker",
+  "modelVersion": "7.0",
+  "authenticationproviders" : [{
+    "name": "password",
+    "type": "Plain",
+    "secureOnlyMechanisms": [],
+    "users": [{"name": "guest", "password": "guest", "type": "managed"}]
+  }],
+  "ports": [{
+    "name": "AMQP",
+    "port": "5672",
+    "authenticationProvider": "password",
+    "protocols": [
+      "AMQP_0_10",
+      "AMQP_0_8",
+      "AMQP_0_9",
+      "AMQP_0_9_1"
+    ],
+    "transports": [ "TCP" ],
+    "virtualhostaliases": [{
+      "name": "defaultAlias",
+      "type": "defaultAlias"
+    }]
+  }],
+  "virtualhostnodes" : [{
+    "name": "default",
+    "type" : "JSON",
+    "defaultVirtualHostNode" : "true",
+    "virtualHostInitialConfiguration": "{ \"type\": \"Memory\" }"
+  }]
+}
