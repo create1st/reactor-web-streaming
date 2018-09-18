@@ -17,9 +17,9 @@
 package com.create.application.configuration;
 
 import com.create.messaging.EmbeddedAMQPBroker;
-import org.springframework.cloud.stream.binding.InputBindingLifecycle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 
@@ -28,10 +28,8 @@ import org.springframework.core.env.Environment;
 class QpidTestConfiguration {
 
     @Bean(initMethod = "start", destroyMethod = "stop")
-    EmbeddedAMQPBroker embeddedAMQPBroker(Environment environment,
-                                          InputBindingLifecycle inputBindingLifecycle) {
-        // We need to introduce dependency on InputBindingLifecycle in order to make sure that all bindings are closed
-        // before the embedded broker is going to be closed
+    @DependsOn("inputBindingLifecycle")
+    EmbeddedAMQPBroker embeddedAMQPBroker(Environment environment) {
         return new EmbeddedAMQPBroker(environment);
     }
 }

@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.context.Lifecycle;
-import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.Payload;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -49,11 +48,7 @@ public class TradePublisher implements Lifecycle, Publisher<Trade> {
     @StreamListener(Trades.INCOMING_TRADES)
     public void onMessage(@Payload Trade trade) {
         if (started.get()) {
-            try {
-                notifyAllSubscriptions(trade);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Failed to parse message content : " + Objects.toString(trade), e);
-            }
+            notifyAllSubscriptions(trade);
         } else {
             throw new IllegalStateException("Attempt to publish a message on not started publisher");
         }
@@ -62,14 +57,6 @@ public class TradePublisher implements Lifecycle, Publisher<Trade> {
     @Override
     public void subscribe(Subscriber<? super Trade> subscriber) {
         tradeFlux.subscribe(subscriber);
-    }
-
-    private byte[] getPayload(Message<?> message) {
-        Object payload = message.getPayload();
-        if (payload instanceof byte[]) {
-            return (byte[]) payload;
-        }
-        throw new IllegalArgumentException("Expected payload of type byte array. Found : " + Objects.toString(payload));
     }
 
     @Override
